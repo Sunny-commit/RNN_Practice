@@ -1,453 +1,406 @@
-# 📈 RNN Practice - Recurrent Neural Networks for Time Series
+# 🚀 RNN Practice - Recurrent Neural Networks
 
-A **comprehensive deep learning tutorial collection** demonstrating RNN architectures for time series prediction, natural language processing, and real-world applications using TensorFlow/Keras with multiple industry-relevant projects.
+A comprehensive **deep learning guide for Recurrent Neural Networks** covering LSTM, GRU, and sequence modeling for time-series prediction, NLP tasks, and sequential data analysis with practical implementations and applications.
 
 ## 🎯 Overview
 
-This educational repository covers:
-- ✅ Stock price prediction with LSTM
-- ✅ Spam classification with embeddings
-- ✅ Service load forecasting
-- ✅ Time series analysis
-- ✅ Word embeddings (GloVe integration)
-- ✅ Multi-layer RNN architectures
+This project covers:
+- ✅ LSTM fundamentals & architecture
+- ✅ GRU (Gated Recurrent Units)
+- ✅ Bidirectional RNNs
+- ✅ Attention mechanisms
+- ✅ Sequence-to-Sequence models
+- ✅ Real-world applications
 
-## 🏗️ Architecture
+## 🧠 RNN Fundamentals
 
-### Deep Learning Framework
-- **Core**: TensorFlow 2.x, Keras Sequential/Functional API
-- **RNN Types**: LSTM, GRU, Simple RNN
-- **Embeddings**: Pre-trained GloVe (6B.50d)
-- **Data Processing**: Pandas, NumPy, Scikit-learn
-- **Visualization**: Matplotlib, TensorBoard
-
-### Tech Stack
-| Component | Technology |
-|-----------|-----------|
-| **Deep Learning** | TensorFlow 2.10+, Keras |
-| **RNN Models** | LSTM, GRU, Bidirectional |
-| **Embeddings** | GloVe 6B.50d (69 MB) |
-| **Preprocessing** | Pandas, NumPy, scikit-learn |
-| **Notebooks** | Jupyter for interactive learning |
-
-## 📁 Project Structure
-
-```
-RNN_Practice/
-├── Exercise Files/                                          # Main notebooks & data
-│
-│   ├── 📊 Time Series Prediction
-│   │   ├── code_03_XX Predicting Stock Prices.ipynb        # Stock price forecasting
-│   │   ├── FB-stock-prices.csv                             # Facebook stock data
-│   │   ├── code_05_XX Forecasting Service Loads.ipynb      # Load prediction (680 KB)
-│   │   └── requests_every_hour.csv                         # Hourly request data
-│   │
-│   ├── 📝 NLP & Classification
-│   │   ├── code_07_XX Spam Classification with Embeddings.ipynb  # Spam detection
-│   │   └── Spam-Classification.csv                         # Dataset (168 KB)
-│   │
-│   └── 🔤 Pre-trained Embeddings
-│       └── glove.6B.50d.txt.zip                           # GloVe word vectors (69 MB)
-│
-├── CONTRIBUTING.md                                          # Contribution guidelines
-├── LICENSE                                                  # Open source license
-├── NOTICE                                                   # Attribution
-└── README.md
-```
-
-## 🎓 Core Projects
-
-### Project 1: Stock Price Prediction (LSTM)
-
-**File**: `code_03_XX Predicting Stock Prices.ipynb` (174 KB)
-
-**Objective**: Predict future Facebook stock prices using historical data
+### Basic RNN Cell
 
 ```python
-# Architecture
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
 
-model = Sequential([
-    LSTM(50, activation='relu', input_shape=(look_back, 1)),
-    Dropout(0.2),
-    LSTM(50, activation='relu'),
-    Dropout(0.2),
-    Dense(25, activation='relu'),
-    Dense(1)
-])
-
-model.compile(optimizer='adam', loss='mse', metrics=['mae'])
-model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
-```
-
-**Data Pipeline**
-```
-Facebook Stock Prices (FB-stock-prices.csv)
-    ↓
-[Data Preprocessing]
-├── Load historical data
-├── Normalize values (MinMaxScaler)
-└── Create sequences (look-back window)
-    ↓
-[Train/Test Split]
-├── 80% training data
-└── 20% testing data
-    ↓
-[LSTM Training]
-├── Input shape: (sequences, time steps, features)
-├── Multi-layer LSTM with dropout
-├── MSE loss optimization
-└── Early stopping to prevent overfitting
-    ↓
-[Predictions]
-├── Forecast next price
-├── Calculate RMSE error
-└── Visualize predictions vs actual
-```
-
-**Key Learnings**
-- Sequential data handling
-- LSTM cell architecture
-- Temporal pattern recognition
-- Hyperparameter tuning for financial data
-
-### Project 2: Service Load Forecasting
-
-**File**: `code_05_XX Forecasting Service Loads.ipynb` (680 KB - largest notebook)
-
-**Objective**: Predict server/service loads for infrastructure planning
-
-```python
-# Time Series Forecasting Architecture
-from tensorflow.keras.layers import LSTM, RepeatVector, TimeDistributed
-
-model = Sequential([
-    # Encoder
-    LSTM(64, input_shape=(look_back, features), return_sequences=True),
-    LSTM(32),
+class SimpleRNNCell:
+    """Understand RNN cell mechanics"""
     
-    # Decoder
-    RepeatVector(forecast_horizon),
-    LSTM(32, return_sequences=True),
-    LSTM(64, return_sequences=True),
-    TimeDistributed(Dense(features))
-])
+    def __init__(self, units, input_size):
+        """
+        units: Hidden state dimension
+        input_size: Input feature dimension
+        """
+        self.units = units
+        self.input_size = input_size
+        
+        # Weights
+        self.W_x = np.random.randn(input_size, units) * 0.001  # Input weights
+        self.W_h = np.random.randn(units, units) * 0.001       # Recurrent weights
+        self.b = np.zeros((1, units))                           # Bias
+    
+    def forward(self, x, h_prev):
+        """
+        Forward pass
+        x: Input (batch_size, input_size)
+        h_prev: Previous hidden state (batch_size, units)
+        """
+        self.x = x
+        self.h_prev = h_prev
+        
+        # Compute hidden state
+        self.h = np.tanh(np.dot(x, self.W_x) + np.dot(h_prev, self.W_h) + self.b)
+        
+        return self.h
+    
+    def backward(self, dh, learning_rate=0.01):
+        """Backpropagation through time"""
+        # Derivative of tanh
+        dh_raw = dh * (1 - self.h ** 2)
+        
+        # Gradients
+        dW_x = np.dot(self.x.T, dh_raw)
+        dW_h = np.dot(self.h_prev.T, dh_raw)
+        db = np.sum(dh_raw, axis=0, keepdims=True)
+        
+        # Update weights
+        self.W_x -= learning_rate * dW_x
+        self.W_h -= learning_rate * dW_h
+        self.b -= learning_rate * db
+        
+        # Gradient for previous layer
+        dh_prev = np.dot(dh_raw, self.W_h.T)
+        
+        return dh_prev
 
-model.compile(optimizer='adam', loss='mse')
+# Example
+rnn_cell = SimpleRNNCell(units=64, input_size=32)
+h_prev = np.zeros((batch_size, 64))
+x_t = np.random.randn(batch_size, 32)
+h_next = rnn_cell.forward(x_t, h_prev)
 ```
 
-**Dataset**: `requests_every_hour.csv`
-- Hourly service requests
-- Pattern analysis (daily/weekly cycles)
-- Peak load prediction
-- Anomaly detection
-
-**Applications**
-- Auto-scaling infrastructure
-- Capacity planning
-- Cost optimization
-- SLA compliance
-
-### Project 3: Spam Classification with Embeddings
-
-**File**: `code_07_XX Spam Classification with Embeddings.ipynb` (16.4 KB)
-
-**Objective**: Classify emails/messages as spam using word embeddings
+### LSTM Architecture
 
 ```python
-# NLP Pipeline with Pre-trained Embeddings
-from tensorflow.keras.layers import Embedding, LSTM, Dense
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+class LSTMCell:
+    """Long Short-Term Memory cell"""
+    
+    def __init__(self, units):
+        self.units = units
+        self.W = None
+        self.b = None
+    
+    def build(self, input_size):
+        """Initialize weights"""
+        # Concatenate input + hidden -> 4*units (for 4 gates)
+        self.W = np.random.randn(input_size + self.units, 4 * self.units) * 0.001
+        self.b = np.zeros((1, 4 * self.units))
+    
+    def forward(self, x, h_prev, c_prev):
+        """
+        Forward pass
+        x: Input (batch_size, input_size)
+        h_prev: Previous hidden state
+        c_prev: Previous cell state
+        """
+        # Concatenate input and previous hidden
+        x_combined = np.concatenate([x, h_prev], axis=1)
+        
+        # Compute gate outputs
+        z = np.dot(x_combined, self.W) + self.b
+        
+        # Split into 4 gates
+        size = self.units
+        z_i = z[:, :size]      # Input gate
+        z_f = z[:, size:2*size]     # Forget gate
+        z_c = z[:, 2*size:3*size]   # Cell gate
+        z_o = z[:, 3*size:]    # Output gate
+        
+        # Apply activations
+        i = sigmoid(z_i)       # Input gate
+        f = sigmoid(z_f)       # Forget gate
+        c_tilde = np.tanh(z_c) # Cell candidate
+        o = sigmoid(z_o)       # Output gate
+        
+        # Update cell state
+        c = f * c_prev + i * c_tilde
+        
+        # Update hidden state
+        h = o * np.tanh(c)
+        
+        self.cache = (x, h_prev, c_prev, i, f, c_tilde, o, c, z)
+        
+        return h, c
+    
+    def backward(self, dh, dc, learning_rate=0.01):
+        """Backpropagation through LSTM"""
+        # Extract cache
+        x, h_prev, c_prev, i, f, c_tilde, o, c, z = self.cache
+        
+        # Gradients
+        dt = dh * o * (1 - np.tanh(c) ** 2) + dc
+        dc_prev = dt * f
+        
+        df = dt * c_prev
+        di = dt * c_tilde
+        dc_tilde = dt * i
+        do = dh * np.tanh(c)
+        
+        # Gate gradients
+        dz_i = di * i * (1 - i)
+        dz_f = df * f * (1 - f)
+        dz_c = dc_tilde * (1 - c_tilde ** 2)
+        dz_o = do * o * (1 - o)
+        
+        dz = np.concatenate([dz_i, dz_f, dz_c, dz_o], axis=1)
+        
+        dW = np.dot(np.concatenate([x, h_prev], axis=1).T, dz)
+        db = np.sum(dz, axis=0, keepdims=True)
+        
+        # Update
+        self.W -= learning_rate * dW
+        self.b -= learning_rate * db
 
-# Load GloVe embeddings
-embeddings_index = {}
-with open('glove.6B.50d.txt') as f:
-    for line in f:
-        values = line.split()
-        word = values[0]
-        coefs = np.asarray(values[1:], dtype='float32')
-        embeddings_index[word] = coefs
-
-# Create embedding matrix
-embedding_dim = 50
-embedding_matrix = np.zeros((vocab_size, embedding_dim))
-for word, i in word_index.items():
-    embedding_vector = embeddings_index.get(word)
-    if embedding_vector is not None:
-        embedding_matrix[i] = embedding_vector
-
-# Model with pre-trained embeddings
-model = Sequential([
-    Embedding(vocab_size, embedding_dim, 
-              weights=[embedding_matrix], 
-              trainable=False),
-    LSTM(32),
-    Dense(16, activation='relu'),
-    Dense(1, activation='sigmoid')
-])
-
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+def sigmoid(x):
+    """Sigmoid activation"""
+    return 1 / (1 + np.exp(-np.clip(x, -500, 500)))
 ```
 
-**Data Pipeline**
-```
-Spam Dataset (Spam-Classification.csv - 168 KB)
-    ↓
-[Text Preprocessing]
-├── Tokenization (split into words)
-├── Vocabulary building
-├── Sequence padding
-└── Integer encoding
-    ↓
-[GloVe Embeddings]
-├── Pre-trained word vectors (50-dimensional)
-├── Vocabulary mapping
-└── Embedding matrix creation
-    ↓
-[LSTM Classification]
-├── Sequential text encoding
-├── Long-term dependency capture
-├── Binary classification
-└── Dropout regularization
-    ↓
-[Evaluation]
-├── Accuracy (%95+)
-├── Precision/Recall
-├── Confusion matrix
-└── Feature importance
-```
+### GRU Architecture
 
-**Key Features**
-- Transfer learning with pre-trained embeddings
-- Significant dimensionality reduction
-- Real-time text classification
-- Sequence-aware architecture
-
-## 🚀 Installation & Setup
-
-### Prerequisites
-```bash
-Python 3.7+
-Jupyter Notebook/Lab
-GPU support (recommended)
-```
-
-### Step-by-Step Setup
-
-```bash
-# 1. Clone Repository
-git clone https://github.com/Sunny-commit/RNN_Practice.git
-cd RNN_Practice
-
-# 2. Create Virtual Environment
-python -m venv env
-source env/bin/activate  # Windows: env\Scripts\activate
-
-# 3. Install Dependencies
-pip install tensorflow keras numpy pandas scikit-learn matplotlib jupyter
-
-# 4. Download Pre-trained Embeddings
-cd "Exercise Files"
-unzip glove.6B.50d.txt.zip
-cd ..
-
-# 5. Launch Jupyter
-jupyter notebook
-```
-
-## 📊 Project Progression
-
-| Project | Difficulty | Notebook Size | Duration | Topics |
-|---------|-----------|--------------|----------|--------|
-| 1. Stock Prediction | ⭐⭐ | 174 KB | 2-3 hrs | LSTM, time series |
-| 2. Service Load | ⭐⭐⭐ | 680 KB | 4-5 hrs | Encoder-decoder, forecasting |
-| 3. Spam Classification | ⭐⭐ | 16 KB | 1-2 hrs | Embeddings, classification |
-
-## 🧠 Deep Learning Concepts Covered
-
-### RNN Architecture
-```
-Input Sequence (x₁, x₂, x₃, ..., xₜ)
-    ↓
-[RNN Cell]
-├── Hidden state: h = tanh(Wₕₕ·h + Wₓₕ·x + bₕ)
-├── Output: y = Wₕᵧ·h + bᵧ
-└── Recurrent connection: h_t uses h_(t-1)
-    ↓
-[LSTM Variant]
-├── Forget gate: fₜ = σ(Wf·[h_(t-1), xₜ])
-├── Input gate: iₜ = σ(Wᵢ·[h_(t-1), xₜ])
-├── Cell state: Cₜ = fₜ * C_(t-1) + iₜ * C̃ₜ
-├── Output gate: oₜ = σ(Wₒ·[h_(t-1), xₜ])
-└── Hidden state: hₜ = oₜ * tanh(Cₜ)
-    ↓
-Output Sequence (ŷ₁, ŷ₂, ŷ₃, ..., ŷₜ)
-```
-
-### Word Embeddings
-```
-Text → Tokenization → Integer Sequence → Embedding Lookup → Dense Vectors
-"Good email" → [42, 156] → [[0.25, -0.1, ...], [0.8, 0.2, ...]]
-```
-
-### Time Series Patterns
-- Trend: Long-term directional movement
-- Seasonality: Regular repeating patterns
-- Autocorrelation: Dependencies on previous values
-- Stationarity: Constant statistical properties
-
-## 📈 Expected Results
-
-### Stock Prediction Accuracy
-- RMSE: $2-5 per share (depending on volatility)
-- Directional accuracy: 55-60%
-- Real-world limitaions: Market noise, external events
-
-### Load Forecasting Accuracy
-- MAPE: 5-10%
-- Peak load prediction: 90%+ accuracy
-- Anomaly detection: 85%+ precision
-
-### Spam Classification
-- Accuracy: 95%+
-- Precision: 94%+
-- Recall: 96%+
-
-## 🔧 Key Implementation Details
-
-### Hyperparameter Tuning
 ```python
-# Experimentation parameters
-look_back = 60              # Sequence length
-batch_size = 32             # Training batch
-epochs = 100                # Training iterations
-dropout_rate = 0.2          # Regularization
-learning_rate = 0.001       # Optimizer rate
+class GRUCell:
+    """Gated Recurrent Unit - simpler than LSTM"""
+    
+    def __init__(self, units):
+        self.units = units
+        self.W = None
+        self.b = None
+    
+    def forward(self, x, h_prev):
+        """
+        GRU forward pass (2 gates instead of LSTM's 3)
+        """
+        x_combined = np.concatenate([x, h_prev], axis=1)
+        z = np.dot(x_combined, self.W) + self.b
+        
+        # Reset and update gates
+        r = sigmoid(z[:, :self.units])      # Reset gate
+        u = sigmoid(z[:, self.units:2*self.units])  # Update gate
+        
+        # Candidate hidden state
+        h_candidate = np.tanh(
+            z[:, 2*self.units:] + 
+            r * np.dot(h_prev, self.W[:self.units, 2*self.units:])
+        )
+        
+        # New hidden state
+        h = (1 - u) * h_candidate + u * h_prev
+        
+        return h
 ```
 
-### Data Normalization
+## 📊 Time-Series Forecasting with RNN
+
 ```python
-from sklearn.preprocessing import MinMaxScaler
-
-scaler = MinMaxScaler(feature_range=(0, 1))
-scaled_data = scaler.fit_transform(data)
-# Normalization critical for LSTM convergence
+class TimeSeriesRNN:
+    """RNN for time-series prediction"""
+    
+    def __init__(self, sequence_length=30):
+        self.sequence_length = sequence_length
+        self.model = self._build_model()
+    
+    def _build_model(self):
+        """Build LSTM model for time series"""
+        model = keras.Sequential([
+            layers.LSTM(
+                64,
+                activation='relu',
+                input_shape=(self.sequence_length, 1),
+                return_sequences=True
+            ),
+            layers.Dropout(0.2),
+            layers.LSTM(32, activation='relu'),
+            layers.Dropout(0.2),
+            layers.Dense(16, activation='relu'),
+            layers.Dense(1)  # Single output
+        ])
+        
+        model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+        
+        return model
+    
+    def prepare_data(self, data, train_size=0.8):
+        """Prepare sequences for training"""
+        X, y = [], []
+        
+        for i in range(len(data) - self.sequence_length):
+            X.append(data[i:i+self.sequence_length])
+            y.append(data[i+self.sequence_length])
+        
+        X = np.array(X)
+        y = np.array(y)
+        
+        split = int(len(X) * train_size)
+        
+        return {
+            'X_train': X[:split],
+            'y_train': y[:split],
+            'X_val': X[split:],
+            'y_val': y[split:]
+        }
+    
+    def train(self, data, epochs=50):
+        """Train model"""
+        dataset = self.prepare_data(data)
+        
+        history = self.model.fit(
+            dataset['X_train'],
+            dataset['y_train'],
+            validation_data=(dataset['X_val'], dataset['y_val']),
+            epochs=epochs,
+            batch_size=32
+        )
+        
+        return history
+    
+    def forecast(self, data, steps=10):
+        """Forecast future values"""
+        sequence = data[-self.sequence_length:].reshape(1, -1, 1)
+        forecasts = []
+        
+        for _ in range(steps):
+            pred = self.model.predict(sequence, verbose=0)[0, 0]
+            forecasts.append(pred)
+            
+            # Update sequence
+            sequence = np.append(sequence[0, 1:, 0], pred)
+            sequence = sequence.reshape(1, -1, 1)
+        
+        return np.array(forecasts)
 ```
 
-### Early Stopping
+## 🔤 NLP with RNNs
+
+### Text Classification
+
 ```python
-from tensorflow.keras.callbacks import EarlyStopping
-
-early_stop = EarlyStopping(
-    monitor='val_loss',
-    patience=10,
-    restore_best_weights=True
-)
+class TextClassificationRNN:
+    """LSTM for text classification"""
+    
+    def __init__(self, vocab_size=10000, max_length=100, num_classes=2):
+        self.vocab_size = vocab_size
+        self.max_length = max_length
+        self.num_classes = num_classes
+        self.model = self._build_model()
+    
+    def _build_model(self):
+        """Build text classification model"""
+        model = keras.Sequential([
+            layers.Embedding(self.vocab_size, 128, input_length=self.max_length),
+            layers.LSTM(64, return_sequences=True),
+            layers.Dropout(0.2),
+            layers.LSTM(32),
+            layers.Dropout(0.2),
+            layers.Dense(16, activation='relu'),
+            layers.Dense(self.num_classes, activation='softmax')
+        ])
+        
+        model.compile(
+            optimizer='adam',
+            loss='categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        return model
+    
+    def encode_text(self, texts, tokenizer):
+        """Encode text to sequences"""
+        sequences = tokenizer.texts_to_sequences(texts)
+        padded = keras.preprocessing.sequence.pad_sequences(
+            sequences,
+            maxlen=self.max_length
+        )
+        return padded
 ```
 
-## 🎯 Real-world Applications
+### Sequence-to-Sequence (Seq2Seq)
 
-**Finance**
-- Stock price forecasting
-- Portfolio optimization
-- Risk assessment
-
-**Infrastructure**
-- Server load prediction
-- Auto-scaling triggers
-- Capacity planning
-
-**Security**
-- Spam/phishing detection
-- Anomaly detection
-- Threat identification
-
-**Healthcare**
-- Patient monitoring  
-- Disease progression
-- Treatment planning
-
-## 🎓 Learning Objectives
-
-After completing this project, you'll understand:
-- ✅ RNN & LSTM architecture
-- ✅ Time series analysis & forecasting
-- ✅ Transfer learning with embeddings
-- ✅ Sequence-to-sequence models
-- ✅ Production ML pipelines
-- ✅ Model evaluation metrics
-
-## 🛠️ Advanced Topics
-
-### GRU (Gated Recurrent Unit)
 ```python
-from tensorflow.keras.layers import GRU
-
-model = Sequential([
-    GRU(32, input_shape=(look_back, features)),
-    Dense(1)
-])
-# Simpler than LSTM, similar performance
+class Seq2SeqModel:
+    """Encoder-decoder for sequence generation"""
+    
+    def __init__(self, input_vocab_size, output_vocab_size, latent_dim=256):
+        self.input_vocab_size = input_vocab_size
+        self.output_vocab_size = output_vocab_size
+        self.latent_dim = latent_dim
+        self.encoder, self.decoder, self.model = self._build_model()
+    
+    def _build_model(self):
+        """Build seq2seq architecture"""
+        # Encoder
+        encoder_inputs = layers.Input(shape=(None,))
+        encoder_embedding = layers.Embedding(
+            self.input_vocab_size,
+            self.latent_dim
+        )(encoder_inputs)
+        encoder_lstm = layers.LSTM(self.latent_dim, return_state=True)
+        encoder_outputs, state_h, state_c = encoder_lstm(encoder_embedding)
+        encoder_states = [state_h, state_c]
+        
+        # Decoder
+        decoder_inputs = layers.Input(shape=(None,))
+        decoder_embedding = layers.Embedding(
+            self.output_vocab_size,
+            self.latent_dim
+        )(decoder_inputs)
+        decoder_lstm = layers.LSTM(
+            self.latent_dim,
+            return_sequences=True,
+            return_state=True
+        )
+        decoder_outputs, _, _ = decoder_lstm(
+            decoder_embedding,
+            initial_state=encoder_states
+        )
+        decoder_dense = layers.Dense(self.output_vocab_size, activation='softmax')
+        decoder_outputs = decoder_dense(decoder_outputs)
+        
+        # Model
+        model = keras.Model([encoder_inputs, decoder_inputs], decoder_outputs)
+        model.compile(optimizer='adam', loss='categorical_crossentropy')
+        
+        return encoder, decoder_lstm, model
 ```
 
-### Bidirectional Processing
-```python
-from tensorflow.keras.layers import Bidirectional
+## 💡 Interview Talking Points
 
-model = Sequential([
-    Bidirectional(LSTM(32, input_shape=(look_back, features))),
-    Dense(1)
-])
-# Process sequences forward AND backward
+**Q: What's the difference between LSTM and GRU?**
+```
+Answer:
+- LSTM: 3 gates (input, forget, output), more parameters
+- GRU: 2 gates (reset, update), simpler, faster
+- Performance similar, GRU preferred for real-time/mobile
 ```
 
-### Attention Mechanism
-```python
-from tensorflow.keras.layers import Attention
-
-# Allows model to focus on relevant parts
-query = LSTM(32)(encoder_input)
-attention = Attention()([query, encoder_output])
+**Q: How handle vanishing gradient problem?**
+```
+Answer:
+- Gradient clipping
+- Initialize weights properly
+- LSTM/GRU design (gates help preserve gradients)
+- Use better optimizers (Adam vs SGD)
 ```
 
-## 📚 References & Resources
+## 🌟 Portfolio Value
 
-- [Keras RNN Documentation](https://keras.io/api/layers/recurrent_layers/)
-- [Understanding LSTM Networks](http://colah.github.io/posts/2015-08-Understanding-LSTMs/)
-- [GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/projects/glove/)
-- [Time Series Forecasting Best Practices](https://machinelearningmastery.com/)
-
-## 🤝 Contributing
-
-Contributions welcome:
-- Additional notebooks (sentiment analysis, machine translation)
-- Performance optimizations
-- TensorFlow 2.x updates
-- Documentation improvements
-
-## 📄 License
-
-Licensed under MIT License - See LICENSE file
-
-## 🌟 Key Takeaways
-
-✅ Comprehensive RNN learning path
-✅ Industry-relevant applications  
-✅ Pre-trained embeddings integration
-✅ Time series best practices
-✅ Production-ready code patterns
-✅ Multiple architectural variations
-✅ Real-world datasets included
-
-## 📧 Support
-
-For questions or issues: Check CONTRIBUTING.md or open GitHub Issue
+✅ LSTM/GRU architectures
+✅ Time-series forecasting
+✅ Text classification
+✅ Seq2Seq models
+✅ RNN fundamentals
+✅ Deep learning expertise
 
 ---
 
-**Recommended Learning Order**:
-1. Start: Spam Classification (simplest)
-2. Progress: Stock Price Prediction (medium)
-3. Advanced: Service Load Forecasting (most complex)
+**Technologies**: TensorFlow, Keras, NumPy
+
